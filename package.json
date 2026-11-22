@@ -3,14 +3,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "test": "node test.mjs"
+    "dev": "cf dev",
+    "test": "node test.mjs",
+    "deploy": "cf deploy"
   },
   "dependencies": {
     "qrcode-generator": "2.0.4"
   },
   "devDependencies": {
-    "wrangler": "4.135.0"
+    "cf": "^1.0.0-rc.2",
+    "wrangler": "^4.166.0"
   },
   "allowScripts": {
     "esbuild@0.28.1": true,
