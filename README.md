@@ -2,6 +2,10 @@
 
 Use this standalone app for the Nov 27 audience favorite and the official prize after the second Code Jam. Create one poll per vote. Each poll has its own link, QR code, codes and tally.
 
+![The projector reveal: the rest of the list, then 3rd, 2nd and 1st with confetti](docs/demo.gif)
+
+Live at <https://gdg-code-jam-vote.tatandat110105.workers.dev>. Full recording: [docs/demo.mp4](docs/demo.mp4).
+
 ## Rehearse locally
 
 1. Run `npm ci` from this folder.
