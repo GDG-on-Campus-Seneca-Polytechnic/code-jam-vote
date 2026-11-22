@@ -2,27 +2,61 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Code Jam voting</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Code Jam Vote</title>
+  <link rel="icon" href="/mark.svg" type="image/svg+xml">
+  <link rel="preload" href="/fonts/roboto-900.woff" as="font" type="font/woff" crossorigin>
   <link rel="stylesheet" href="/style.css">
   <script type="module" src="/ballot.js"></script>
 </head>
 <body>
+  <header class="brand">
+    <img src="/mark.svg" alt="" width="36" height="36">
+    <span>Code Jam Vote</span>
+  </header>
   <main>
-    <p class="eyebrow">GDG at Seneca</p>
-    <h1 id="title">Code Jam voting</h1>
-    <p id="status" role="status">Loading the ballot…</p>
-    <form id="ballot" hidden>
-      <fieldset id="projects">
-        <legend>Choose one project</legend>
+    <h1 id="title" class="poll-title">Code Jam voting</h1>
+    <p id="status" class="status" role="status">Loading the ballot…</p>
+
+    <form id="ballot" hidden novalidate>
+      <div class="field">
+        <label for="code">Your attendee code</label>
+        <p class="hint" id="code-hint">It is on the slip you got at check-in. Each code votes once.</p>
+        <input id="code" class="code-input" placeholder="ABCD-EFGH-JKLM" maxlength="14"
+          autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"
+          enterkeyhint="next" aria-describedby="code-hint code-error">
+        <p id="code-error" class="field-error" hidden></p>
+      </div>
+
+      <fieldset id="projects" aria-describedby="project-error">
+        <legend>Pick one project</legend>
+        <div id="choices" class="choices"></div>
+        <p id="project-error" class="field-error" hidden></p>
       </fieldset>
-      <label for="code">Attendee code</label>
-      <input id="code" placeholder="ABCD-EFGH-JKLM" required maxlength="20"
-        autocomplete="off" autocapitalize="characters" spellcheck="false">
-      <button type="submit">Cast vote</button>
-      <p id="message" role="status"></p>
+
+      <div class="submit-bar">
+        <p id="message" class="form-error" role="alert"></p>
+        <button id="submit" type="submit">Cast my vote</button>
+      </div>
     </form>
-    <ol id="results" hidden></ol>
+
+    <section id="done" class="done" hidden tabindex="-1" aria-labelledby="done-title">
+      <h2 id="done-title">Vote counted</h2>
+      <p>You voted for <strong id="done-choice"></strong>. Your code is now used. Results are revealed on the big screen when voting ends.</p>
+    </section>
+
+    <section id="closed" class="closed-note" hidden>
+      <p>Watch the big screen for the results.</p>
+      <details>
+        <summary>Show the results on this phone</summary>
+        <p id="result-summary" class="hint"></p>
+        <ol id="results" class="ranked"></ol>
+      </details>
+    </section>
   </main>
+  <footer class="disclaimer">
+    Made for the Code Jam by <strong>GDG on Campus @ Seneca Polytechnic</strong>.<br>
+    GDG on Campus @ Seneca Polytechnic is not affiliated with or endorsed by Google LLC.
+  </footer>
 </body>
 </html>

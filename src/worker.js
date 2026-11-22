@@ -49,6 +49,16 @@ async function digest(text) {
   return new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(text))).toHex();
 }
 
+// Each poll gets its own 256-bit host key. Only its SHA-256 hash is stored.
+function makeHostKey() {
+  return crypto.getRandomValues(new Uint8Array(32)).toHex();
+}
+
+function sameHash(a, b) {
+  return typeof a === "string" && typeof b === "string" && a.length === b.length &&
+    crypto.subtle.timingSafeEqual(encoder.encode(a), encoder.encode(b));
+}
+
 function makeCode() {
   return Array.from(crypto.getRandomValues(new Uint8Array(12)), byte => alphabet[byte & 31]).join("");
 }
@@ -59,10 +69,10 @@ function publicPoll(poll) {
 }
 
 export class Poll extends DurableObject {
-  create(title) {
+  create(title, keyHash) {
     const store = this.ctx.storage.kv;
     if (store.get("poll")) return false;
-    store.put("poll", { title, projects: [], phase: "ready", tally: [], codes: {} });
+    store.put("poll", { title, keyHash, projects: [], phase: "ready", tally: [], codes: {} });
     return true;
   }
 
@@ -72,10 +82,14 @@ export class Poll extends DurableObject {
   }
 
   // These mutations do not yield between the read and the single durable write.
-  update(action, input) {
+  update(action, input, keyHash) {
     const store = this.ctx.storage.kv;
     const poll = store.get("poll");
     if (!poll) return failure(404, "Poll not found.");
+    // Every host action must carry this poll's own key; a key from another poll never matches.
+    if (action !== "vote" && !sameHash(keyHash, poll.keyHash)) {
+      return failure(401, "This host key does not match this poll.");
+    }
 
     if (action === "vote") {
       if (poll.phase !== "open") return failure(409, "Voting is not open.");
@@ -124,10 +138,10 @@ export class Poll extends DurableObject {
   }
 }
 
-function hostAuthorized(request, key) {
-  if (typeof key !== "string" || !keyPattern.test(key)) return false;
+// Returns the hash of the Bearer host key, or null when none was sent.
+async function suppliedKeyHash(request) {
   const supplied = request.headers.get("Authorization")?.match(/^Bearer ([0-9a-f]{64})$/)?.[1];
-  return Boolean(supplied && crypto.subtle.timingSafeEqual(encoder.encode(supplied), encoder.encode(key)));
+  return supplied && keyPattern.test(supplied) ? digest(supplied) : null;
 }
 
 export default {
@@ -171,8 +185,7 @@ export default {
       return json(result.data, result.status);
     }
 
-    if (!hostAuthorized(request, env.POLL_HOST_KEY)) return json({ error: "Enter the host key." }, 401);
-
+    // Anyone can create a poll. The new poll's host key is returned once and never stored in plain text.
     if (!id) {
       const body = await readBody(request);
       const title = clean(body?.title);
@@ -180,11 +193,15 @@ export default {
         return json({ error: "Enter a poll title up to 80 characters." }, 400);
       }
       const pollId = crypto.randomUUID().replaceAll("-", "");
-      if (!await env.POLLS.getByName(pollId).create(title)) {
+      const key = makeHostKey();
+      if (!await env.POLLS.getByName(pollId).create(title, await digest(key))) {
         return json({ error: "A poll ID overlapped. Try creating the poll again." }, 409);
       }
-      return json({ id: pollId }, 201);
+      return json({ id: pollId, key }, 201);
     }
+
+    const keyHash = await suppliedKeyHash(request);
+    if (!keyHash) return json({ error: "Enter the host key for this poll." }, 401);
 
     if (action === "projects") {
       const body = await readBody(request);
@@ -194,7 +211,7 @@ export default {
           new Set(projects.map(name => name.toLowerCase())).size !== projects.length) {
         return json({ error: "Enter 2 to 50 distinct project names, each up to 80 characters." }, 400);
       }
-      const result = await env.POLLS.getByName(id).update("projects", projects);
+      const result = await env.POLLS.getByName(id).update("projects", projects, keyHash);
       return json(result.data, result.status);
     }
 
@@ -207,13 +224,13 @@ export default {
       while (batch.size < count) batch.add(makeCode());
       const codes = [...batch];
       const hashes = await Promise.all(codes.map(digest));
-      const result = await env.POLLS.getByName(id).update("codes", hashes);
+      const result = await env.POLLS.getByName(id).update("codes", hashes, keyHash);
       if (result.status !== 200) return json(result.data, result.status);
       return json({ codes: codes.map(code => code.match(/.{4}/g).join("-")) });
     }
 
     if (action === "open" || action === "close") {
-      const result = await env.POLLS.getByName(id).update(action);
+      const result = await env.POLLS.getByName(id).update(action, undefined, keyHash);
       return json(result.data, result.status);
     }
 

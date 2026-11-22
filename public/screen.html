@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en" class="projector">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Screen: Code Jam Vote</title>
+  <link rel="icon" href="/mark.svg" type="image/svg+xml">
+  <link rel="preload" href="/fonts/roboto-900.woff" as="font" type="font/woff" crossorigin>
+  <link rel="stylesheet" href="/screen.css">
+  <script type="module" src="/screen.js"></script>
+</head>
+<body>
+  <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
+
+  <header class="bar">
+    <div class="brand">
+      <span class="brand-chip"><img src="/mark.svg" alt="" width="64" height="64"></span>
+      <span class="brand-name">Code Jam Vote</span>
+    </div>
+    <div class="controls">
+      <button id="theme" type="button" title="Shortcut: T">Light background</button>
+      <button id="fullscreen" type="button" title="Shortcut: F">Full screen</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Before and during voting: how to vote, with the QR code -->
+    <section id="lobby" class="lobby">
+      <div class="lobby-text">
+        <p id="phase" class="phase" role="status">Loading…</p>
+        <h1 id="title" class="title"></h1>
+        <ol id="steps" class="steps" hidden>
+          <li><span class="step-dot" aria-hidden="true">1</span>Scan the QR code with your phone</li>
+          <li><span class="step-dot" aria-hidden="true">2</span>Type the code from your check-in slip</li>
+          <li><span class="step-dot" aria-hidden="true">3</span>Pick one project and vote</li>
+        </ol>
+        <p id="instructions" class="instructions"></p>
+      </div>
+      <figure id="qr-frame" class="qr-card" hidden>
+        <div class="qr-paper">
+          <img id="qr" alt="QR code that opens the voter page">
+        </div>
+        <figcaption id="join" class="join">Or go to <strong id="join-link"></strong></figcaption>
+      </figure>
+    </section>
+
+    <!-- After voting closes: the results are counted but not shown yet -->
+    <section id="curtain" class="curtain" hidden aria-labelledby="curtain-title">
+      <p class="phase" data-phase="closed">Voting is closed</p>
+      <h1 id="curtain-title" class="curtain-title"></h1>
+      <div class="curtain-stage" aria-hidden="true">
+        <div class="podium podium-silhouette">
+          <div class="spot" data-place="2"><div class="block"><span class="mystery">?</span></div></div>
+          <div class="spot" data-place="1"><div class="block"><span class="mystery">?</span></div></div>
+          <div class="spot" data-place="3"><div class="block"><span class="mystery">?</span></div></div>
+        </div>
+        <div class="base"></div>
+      </div>
+      <div class="curtain-action">
+        <button id="reveal" class="reveal" type="button">Reveal results</button>
+        <p class="hint">or press Space</p>
+      </div>
+    </section>
+
+    <!-- The reveal -->
+    <section id="board" class="board" hidden aria-labelledby="board-title">
+      <div class="stage">
+        <div class="stage-head">
+          <h1 id="board-title" class="board-title"></h1>
+          <p id="announce" class="announce" aria-hidden="true"></p>
+          <p id="result" class="visually-hidden" aria-live="polite"></p>
+        </div>
+        <div class="stage-floor">
+          <div id="podium" class="podium"></div>
+          <div class="base" aria-hidden="true"></div>
+        </div>
+      </div>
+      <aside id="standings" class="standings" aria-label="Rest of the ranking">
+        <div id="rest" class="rest"></div>
+        <div id="quiet" class="quiet">
+          <h2 class="quiet-title">Also in the running</h2>
+          <ul id="quiet-names" class="quiet-names"></ul>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="disclaimer">GDG on Campus @ Seneca Polytechnic is not affiliated with or endorsed by Google LLC.</footer>
+</body>
+</html>

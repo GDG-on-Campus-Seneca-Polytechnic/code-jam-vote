@@ -1,14 +1,15 @@
 import assert from "node:assert/strict";
 
 const base = new URL(process.env.POLL_TEST_URL || "http://127.0.0.1:8787");
-const key = process.env.POLL_TEST_HOST_KEY;
 assert.equal(base.hostname, "127.0.0.1", "Use a local Worker for this check.");
-assert.match(key || "", /^[0-9a-f]{64}$/, "Set POLL_TEST_HOST_KEY to your local host key.");
 
-async function call(path, status, { method = "GET", data, authorized = false } = {}) {
+// Each poll has its own host key, returned once when the poll is created.
+const keys = {};
+
+async function call(path, status, { method = "GET", data, key } = {}) {
   const headers = {};
   if (data) headers["Content-Type"] = "application/json";
-  if (authorized) headers.Authorization = `Bearer ${key}`;
+  if (key) headers.Authorization = `Bearer ${key}`;
   const response = await fetch(new URL(`/api/polls${path}`, base), {
     method,
     headers,
@@ -20,15 +21,29 @@ async function call(path, status, { method = "GET", data, authorized = false } =
   return body;
 }
 
-const host = (path, status, data) => call(path, status, { method: "POST", authorized: true, data });
+async function create(title) {
+  const poll = await call("", 201, { method: "POST", data: { title } });
+  assert.match(poll.key, /^[0-9a-f]{64}$/);
+  keys[poll.id] = poll.key;
+  return poll.id;
+}
+
+// Host actions use the key of the poll named in the path.
+const host = (path, status, data) => call(path, status, { method: "POST", key: keys[path.split("/")[1]], data });
 const ballot = (id, code, project, status) => call(`/${id}/vote`, status, { method: "POST", data: { code, project } });
 const projects = Array.from({ length: 12 }, (_, index) => `Project ${index + 1}`);
-await call("", 401, { method: "POST", data: { title: "Untrusted", projects } });
-await host("", 400, { title: "" });
+await call("", 400, { method: "POST", data: { title: "" } });
 
-const { id: audience } = await host("", 201, { title: "Audience choice" });
-const { id: prize } = await host("", 201, { title: "Second jam prize" });
+const audience = await create("Audience choice");
+const prize = await create("Second jam prize");
 assert.notEqual(audience, prize);
+assert.notEqual(keys[audience], keys[prize]);
+
+// No key, a malformed key, or another poll's key cannot control a poll.
+await call(`/${audience}/codes`, 401, { method: "POST", data: { count: 1 } });
+await call(`/${audience}/codes`, 401, { method: "POST", key: "not-a-key", data: { count: 1 } });
+await call(`/${audience}/codes`, 401, { method: "POST", key: keys[prize], data: { count: 1 } });
+await call(`/${prize}/projects`, 401, { method: "POST", key: keys[audience], data: { projects: ["A", "B"] } });
 assert.equal((await call(`/${audience}`, 200)).projects.length, 0);
 await host(`/${audience}/open`, 409);
 const { codes: [first, second] } = await host(`/${audience}/codes`, 200, { count: 2 });
@@ -71,9 +86,10 @@ assert.equal((await call(`/${prize}`, 200)).phase, "open");
 assert.deepEqual((await host(`/${prize}/close`, 200)).results, [0, 1]);
 await host(`/${audience}/open`, 409);
 await ballot(audience, second, 3, 409);
+await call(`/${audience}/close`, 401, { method: "POST", key: keys[prize] });
 
 const qr = await fetch(new URL(`/api/polls/${audience}/qr`, base));
 assert.equal(qr.status, 200);
 assert.equal(qr.headers.get("Content-Type"), "image/svg+xml");
 assert.match(await qr.text(), /^<svg[ >]/);
-console.log("Passed two independent ballots, concurrent reuse, hidden tallies, host controls and QR generation.");
+console.log("Passed per-poll host keys, two independent ballots, concurrent reuse, hidden tallies, host controls and QR generation.");

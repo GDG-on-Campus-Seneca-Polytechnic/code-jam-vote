@@ -3,50 +3,125 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Code Jam voting host</title>
+  <title>Host: Code Jam Vote</title>
+  <link rel="icon" href="/mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css">
   <script type="module" src="/host.js"></script>
 </head>
 <body>
+  <header class="brand">
+    <img src="/mark.svg" alt="" width="36" height="36">
+    <span>Code Jam Vote</span>
+    <span class="role">Host</span>
+  </header>
   <main>
-    <p class="eyebrow">GDG at Seneca · Host</p>
-    <h1 id="title">Create a Code Jam poll</h1>
-    <p id="status" role="status"></p>
-    <label for="key">Host key</label>
-    <input id="key" type="password" autocomplete="off" maxlength="64">
-    <form id="create" hidden>
-      <label for="name">Poll title</label>
-      <input id="name" placeholder="Nov 23 audience choice" required maxlength="80">
-      <button type="submit">Create poll</button>
-    </form>
-    <section id="controls" hidden>
-      <h2>Share the ballot</h2>
-      <p><a id="link">Open voter page</a></p>
-      <a id="qr-link" download="code-jam-ballot.svg"><img id="qr" width="184" height="184" alt="Download the ballot QR code"></a>
-      <p>Show attendees the QR code or share the voter page link.</p>
-      <form id="codes">
-        <label for="count">Number of attendee codes</label>
-        <input id="count" type="number" value="50" min="1" max="150" required>
-        <button type="submit">Generate codes</button>
-      </form>
-      <div id="batch" hidden>
-        <label for="code-list">Private attendee codes</label>
-        <textarea id="code-list" rows="6" readonly></textarea>
-        <button id="download" type="button">Download codes</button>
-        <p>Save this batch. Give one code to each attendee.</p>
+    <div class="host-head">
+      <h1 id="title">Set up a poll</h1>
+      <p id="phase" class="phase" role="status" hidden></p>
+    </div>
+
+    <div class="field key-field" id="key-field" hidden>
+      <label for="key">Host key for this poll</label>
+      <input id="key" type="password" autocomplete="off" maxlength="64" aria-describedby="key-hint">
+      <p class="hint" id="key-hint">This browser does not have the key for this poll. Open the host link you saved, or paste the key here. Keep this page off the projector: it shows private codes.</p>
+    </div>
+
+    <section id="host-link-box" class="field key-field" hidden aria-label="Host link">
+      <label for="host-link">Host link</label>
+      <div class="inline">
+        <input id="host-link" type="text" readonly aria-describedby="host-link-hint">
+        <button id="copy-host-link" type="button" class="secondary">Copy</button>
       </div>
-      <form id="projects">
-        <label for="entries">Project names, one per line</label>
-        <textarea id="entries" rows="6" required maxlength="4200"></textarea>
-        <button type="submit">Save projects</button>
-      </form>
-      <div class="actions">
-        <button id="open" type="button">Open voting</button>
-        <button id="close" type="button">Close and show results</button>
-      </div>
-      <p><a href="/host.html">Create a separate poll</a></p>
+      <p class="hint" id="host-link-hint">Save this link, or send it to a co-organizer, to run this poll from another device. Whoever has this link can run the poll, so do not share it with attendees or show it on the projector.</p>
     </section>
-    <p id="message" role="status"></p>
+
+    <section id="share" class="share" hidden aria-label="Share the ballot">
+      <a id="qr-link" download="code-jam-ballot.svg" title="Download the QR code">
+        <img id="qr" width="120" height="120" alt="Ballot QR code. Select to download.">
+      </a>
+      <div class="share-links">
+        <a id="screen-link" class="button" target="_blank" rel="noopener">Open the projector screen</a>
+        <a id="voter-link" class="button secondary" target="_blank" rel="noopener">Open the voter page</a>
+      </div>
+    </section>
+
+    <ol class="steps">
+      <li class="step" id="step-create" data-state="current">
+        <h2>Create the poll</h2>
+        <div class="step-body">
+          <form id="create" class="inline">
+            <div class="field">
+              <label for="name">Poll title</label>
+              <input id="name" placeholder="Code Jam audience choice" required maxlength="80">
+            </div>
+            <button type="submit">Create poll</button>
+          </form>
+          <p id="created" hidden>Poll created. Bookmark this page to come back to it. <a href="/host.html">Start a separate poll</a></p>
+        </div>
+      </li>
+
+      <li class="step" id="step-codes" data-state="todo">
+        <h2>Generate attendee codes</h2>
+        <div class="step-body">
+          <p class="step-note">Give one code to each attendee in private. Each code casts one vote.</p>
+          <form id="codes" class="inline">
+            <div class="field">
+              <label for="count">How many codes</label>
+              <input id="count" type="number" inputmode="numeric" value="50" min="1" max="150" required>
+            </div>
+            <button type="submit">Generate codes</button>
+          </form>
+          <div id="batch" hidden>
+            <label for="code-list">Codes from this session</label>
+            <textarea id="code-list" rows="6" readonly></textarea>
+            <div class="row">
+              <button id="download" type="button" class="secondary">Download codes</button>
+            </div>
+            <p class="hint">Download them now. They are not shown again after a reload.</p>
+          </div>
+        </div>
+      </li>
+
+      <li class="step" id="step-projects" data-state="todo">
+        <h2>Enter the projects</h2>
+        <div class="step-body">
+          <form id="projects">
+            <div class="field">
+              <label for="entries">Project names, one per line</label>
+              <p class="hint">2 to 50 projects, each up to 80 characters. Locked once voting opens.</p>
+              <textarea id="entries" rows="7" required maxlength="4200"></textarea>
+            </div>
+            <button type="submit">Save projects</button>
+          </form>
+        </div>
+      </li>
+
+      <li class="step" id="step-open" data-state="todo">
+        <h2>Open voting</h2>
+        <div class="step-body">
+          <p class="step-note">After the demos. Phones switch to the ballot within a few seconds.</p>
+          <button id="open" type="button">Open voting</button>
+        </div>
+      </li>
+
+      <li class="step" id="step-close" data-state="todo">
+        <h2>Close voting and reveal</h2>
+        <div class="step-body">
+          <p class="step-note" id="close-note">No tally is shown while voting is open. After you close, select Reveal results on the projector screen.</p>
+          <button id="close" type="button">Close voting</button>
+          <div id="host-results" hidden>
+            <p id="result-summary"></p>
+            <ol id="results" class="ranked"></ol>
+          </div>
+        </div>
+      </li>
+    </ol>
+
+    <p id="message" class="message" role="status"></p>
   </main>
+  <footer class="disclaimer">
+    Made for the Code Jam by <strong>GDG on Campus @ Seneca Polytechnic</strong>.<br>
+    GDG on Campus @ Seneca Polytechnic is not affiliated with or endorsed by Google LLC.
+  </footer>
 </body>
 </html>
